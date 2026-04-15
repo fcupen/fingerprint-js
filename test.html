@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrowserFingerprint — Test Page</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2a2d3a;
+      --text: #e2e4ea;
+      --muted: #8b8fa3;
+      --accent: #7c6ef0;
+      --accent-dim: #5a4ec7;
+      --green: #4ade80;
+      --red: #f87171;
+      --orange: #fbbf24;
+      --mono: "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    header h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    header h1 span {
+      color: var(--accent);
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-title .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: inline-block;
+    }
+
+    .token-display {
+      font-family: var(--mono);
+      font-size: 1rem;
+      word-break: break-all;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      color: var(--green);
+      cursor: pointer;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+
+    .token-display:hover {
+      border-color: var(--accent);
+    }
+
+    .token-display .copy-hint {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.75rem;
+      font-size: 0.7rem;
+      color: var(--muted);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .token-display:hover .copy-hint {
+      opacity: 1;
+    }
+
+    .token-display.copied .copy-hint {
+      color: var(--green);
+      opacity: 1;
+    }
+
+    .token-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .token-label .badge {
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-sha256 {
+      background: rgba(74, 222, 128, 0.12);
+      color: var(--green);
+    }
+
+    .badge-fnv1a {
+      background: rgba(251, 191, 36, 0.12);
+      color: var(--orange);
+    }
+
+    .tokens-grid {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .signals-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .signals-table tr {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .signals-table tr:last-child {
+      border-bottom: none;
+    }
+
+    .signals-table td {
+      padding: 0.55rem 0;
+      vertical-align: top;
+    }
+
+    .signals-table .key {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--accent);
+      white-space: nowrap;
+      width: 1%;
+      padding-right: 1.5rem;
+    }
+
+    .signals-table .value {
+      font-family: var(--mono);
+      font-size: 0.82rem;
+      color: var(--text);
+      word-break: break-all;
+    }
+
+    .signals-table .value.empty {
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .signals-table .category-row td {
+      padding-top: 1.2rem;
+      padding-bottom: 0.3rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    button:hover {
+      border-color: var(--accent);
+      background: rgba(124, 110, 240, 0.08);
+    }
+
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    button.primary:hover {
+      background: var(--accent-dim);
+    }
+
+    .timing {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+    }
+
+    .timing span {
+      font-family: var(--mono);
+      color: var(--orange);
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+    }
+
+    .status.ok { color: var(--green); }
+    .status.warn { color: var(--orange); }
+    .status.err { color: var(--red); }
+
+    .consistency-result {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 8px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      font-size: 0.85rem;
+    }
+
+    .consistency-result.pass {
+      border-color: rgba(74, 222, 128, 0.3);
+    }
+
+    .consistency-result.fail {
+      border-color: rgba(248, 113, 113, 0.3);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.4rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .footer {
+      text-align: center;
+      margin-top: 3rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    @media (max-width: 640px) {
+      body { padding: 1rem; }
+      .card { padding: 1rem; }
+      .token-display { font-size: 0.8rem; padding: 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>🔏 <span>BrowserFingerprint</span> Test Page</h1>
+      <p>Visual inspector for fingerprint signals and token generation</p>
+    </header>
+
+    <div class="actions">
+      <button class="primary" id="btn-generate" onclick="runFingerprint()">Generate Fingerprint</button>
+      <button id="btn-consistency" onclick="runConsistencyTest()">Run Consistency Test</button>
+      <button id="btn-clear" onclick="clearAll()">Clear Cache &amp; Reset</button>
+    </div>
+
+    <!-- Tokens -->
+    <div class="card" id="card-tokens" style="display:none;">
+      <div class="card-title"><span class="dot"></span> Generated Tokens</div>
+      <div class="tokens-grid">
+        <div>
+          <div class="token-label">
+            SHA-256 (async, recommended)
+            <span class="badge badge-sha256">64 hex chars</span>
+          </div>
+          <div class="token-display" id="token-sha256" onclick="copyToken(this)" title="Click to copy">
+            <span class="copy-hint">click to copy</span>
+            —
+          </div>
+        </div>
+        <div>
+          <div class="token-label">
+            FNV-1a (sync fallback)
+            <span class="badge badge-fnv1a">16 hex chars</span>
+          </div>
+          <div class="token-display" id="token-fnv1a" onclick="copyToken(this)" title="Click to copy">
+            <span class="copy-hint">click to copy</span>
+            —
+          </div>
+        </div>
+      </div>
+      <div class="timing" id="timing-info"></div>
+    </div>
+
+    <!-- Consistency test -->
+    <div class="card" id="card-consistency" style="display:none;">
+      <div class="card-title"><span class="dot"></span> Consistency Test</div>
+      <p style="font-size:0.85rem;color:var(--muted);margin-bottom:0.75rem;">
+        Clears cache and regenerates the fingerprint multiple times to verify determinism.
+      </p>
+      <div id="consistency-output"></div>
+    </div>
+
+    <!-- Signals -->
+    <div class="card" id="card-signals" style="display:none;">
+      <div class="card-title"><span class="dot"></span> Raw Signals</div>
+      <div id="signals-body"></div>
+    </div>
+
+    <div class="footer">
+      BrowserFingerprint &mdash; open the DevTools console for raw objects.
+    </div>
+  </div>
+
+  <script src="index.js"></script>
+  <script>
+    // Signal categories for display grouping
+    var CATEGORIES = {
+      "Meta":       ["_v", "_env"],
+      "Navigator":  ["userAgent","language","languages","platform","vendor","hardwareConcurrency","deviceMemory","maxTouchPoints","cookieEnabled","pdfViewerEnabled","webdriver"],
+      "Client Hints": ["uaBrands","uaMobile","uaPlatform"],
+      "Screen":     ["screenMax","screenMin","colorDepth","screenAvailMax","screenAvailMin"],
+      "Timezone":   ["timezone","locale"],
+      "WebGL":      ["hasWebGL","hasWebGL2","webglVendor","webglRenderer","webglVersion","glslVersion","webglMaxTextureSize","webglMaxViewportDims","webglMaxRenderbufferSize","webglMaxVertexAttribs","webglMaxVaryingVectors","webglMaxFragmentUniformVectors","webglAntialiasing","webglExtensionsHash","webglShaderPrecision"],
+      "Canvas & Fonts": ["canvasHash","fonts"],
+      "Math":       ["mathFingerprint"],
+      "Features":   ["hasWorker","hasSharedWorker","hasWasm","hasNotifications","hasServiceWorker","hasIndexedDB","hasLocalStorage","hasSessionStorage"]
+    };
+
+    function formatValue(val) {
+      if (val === "" || val === null || val === undefined) return { text: "(empty)", empty: true };
+      if (typeof val === "string" && val.length > 120) return { text: val.slice(0, 117) + "...", empty: false, full: val };
+      return { text: String(val), empty: false };
+    }
+
+    function renderSignals(signals) {
+      var html = '<table class="signals-table">';
+      var usedKeys = {};
+
+      for (var cat in CATEGORIES) {
+        html += '<tr class="category-row"><td colspan="2">' + cat + '</td></tr>';
+        var keys = CATEGORIES[cat];
+        for (var i = 0; i < keys.length; i++) {
+          var k = keys[i];
+          if (!(k in signals)) continue;
+          usedKeys[k] = true;
+          var fv = formatValue(signals[k]);
+          html += '<tr>'
+            + '<td class="key">' + k + '</td>'
+            + '<td class="value' + (fv.empty ? ' empty' : '') + '"'
+            + (fv.full ? ' title="' + fv.full.replace(/"/g, '&quot;') + '"' : '')
+            + '>' + escapeHtml(fv.text) + '</td>'
+            + '</tr>';
+        }
+      }
+
+      // Any uncategorized keys
+      var extras = Object.keys(signals).filter(function(k) { return !usedKeys[k]; });
+      if (extras.length) {
+        html += '<tr class="category-row"><td colspan="2">Other</td></tr>';
+        for (var j = 0; j < extras.length; j++) {
+          var fv2 = formatValue(signals[extras[j]]);
+          html += '<tr>'
+            + '<td class="key">' + extras[j] + '</td>'
+            + '<td class="value' + (fv2.empty ? ' empty' : '') + '">' + escapeHtml(fv2.text) + '</td>'
+            + '</tr>';
+        }
+      }
+
+      html += '</table>';
+      return html;
+    }
+
+    function escapeHtml(str) {
+      var div = document.createElement("div");
+      div.appendChild(document.createTextNode(str));
+      return div.innerHTML;
+    }
+
+    async function runFingerprint() {
+      var btn = document.getElementById("btn-generate");
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Generating...';
+
+      await new Promise(function(r) { setTimeout(r, 50); });
+
+      try {
+        var t0 = performance.now();
+        var signals = BrowserFingerprint.getFingerprint();
+        var tSignals = performance.now();
+
+        var tokenAsync = await BrowserFingerprint.getFingerprintToken();
+        var tAsync = performance.now();
+
+        var tokenSync = BrowserFingerprint.getFingerprintTokenSync();
+        var tSync = performance.now();
+
+        // Tokens
+        document.getElementById("token-sha256").firstChild.nextSibling
+          ? (document.getElementById("token-sha256").childNodes[1].textContent = tokenAsync)
+          : null;
+        var sha256El = document.getElementById("token-sha256");
+        sha256El.innerHTML = '<span class="copy-hint">click to copy</span>' + escapeHtml(tokenAsync);
+        sha256El.setAttribute("data-token", tokenAsync);
+
+        var fnvEl = document.getElementById("token-fnv1a");
+        fnvEl.innerHTML = '<span class="copy-hint">click to copy</span>' + escapeHtml(tokenSync);
+        fnvEl.setAttribute("data-token", tokenSync);
+
+        document.getElementById("card-tokens").style.display = "block";
+
+        document.getElementById("timing-info").innerHTML =
+          'Signals: <span>' + (tSignals - t0).toFixed(1) + 'ms</span> · '
+          + 'SHA-256: <span>' + (tAsync - tSignals).toFixed(1) + 'ms</span> · '
+          + 'FNV-1a: <span>' + (tSync - tAsync).toFixed(1) + 'ms</span> · '
+          + 'Total: <span>' + (tSync - t0).toFixed(1) + 'ms</span>';
+
+        // Signals
+        document.getElementById("signals-body").innerHTML = renderSignals(signals);
+        document.getElementById("card-signals").style.display = "block";
+
+        // Console output
+        console.group("%c[BrowserFingerprint] Results", "color:#7c6ef0;font-weight:bold");
+        console.log("SHA-256 Token:", tokenAsync);
+        console.log("FNV-1a Token:", tokenSync);
+        console.log("Signals:", signals);
+        console.log("Signal count:", Object.keys(signals).length);
+        console.groupEnd();
+
+      } catch (err) {
+        console.error("[BrowserFingerprint] Error:", err);
+        alert("Error generating fingerprint. Check console for details.");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Generate Fingerprint";
+      }
+    }
+
+    async function runConsistencyTest() {
+      var btn = document.getElementById("btn-consistency");
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Testing...';
+      document.getElementById("card-consistency").style.display = "block";
+      var output = document.getElementById("consistency-output");
+      output.innerHTML = '<span class="spinner"></span> Running 10 rounds...';
+
+      await new Promise(function(r) { setTimeout(r, 50); });
+
+      var ROUNDS = 10;
+      var tokens = [];
+      var syncTokens = [];
+
+      try {
+        for (var i = 0; i < ROUNDS; i++) {
+          BrowserFingerprint.clearCache();
+          var t = await BrowserFingerprint.getFingerprintToken();
+          tokens.push(t);
+
+          BrowserFingerprint.clearCache();
+          var st = BrowserFingerprint.getFingerprintTokenSync();
+          syncTokens.push(st);
+        }
+
+        var uniqueAsync = tokens.filter(function(v, idx, arr) { return arr.indexOf(v) === idx; });
+        var uniqueSync = syncTokens.filter(function(v, idx, arr) { return arr.indexOf(v) === idx; });
+
+        var asyncPass = uniqueAsync.length === 1;
+        var syncPass = uniqueSync.length === 1;
+        var allPass = asyncPass && syncPass;
+
+        var html = '<div class="consistency-result ' + (allPass ? 'pass' : 'fail') + '">';
+
+        if (allPass) {
+          html += '<div class="status ok">✅ PASS — All ' + ROUNDS + ' rounds produced identical tokens</div>';
+        } else {
+          html += '<div class="status err">❌ FAIL — Tokens varied across rounds</div>';
+        }
+
+        html += '<br>';
+        html += '<strong>SHA-256:</strong> ' + (asyncPass
+          ? '<span style="color:var(--green)">' + uniqueAsync.length + ' unique / ' + ROUNDS + ' rounds ✓</span>'
+          : '<span style="color:var(--red)">' + uniqueAsync.length + ' unique / ' + ROUNDS + ' rounds ✗</span>');
+        html += '<br>';
+        html += '<strong>FNV-1a:</strong> ' + (syncPass
+          ? '<span style="color:var(--green)">' + uniqueSync.length + ' unique / ' + ROUNDS + ' rounds ✓</span>'
+          : '<span style="color:var(--red)">' + uniqueSync.length + ' unique / ' + ROUNDS + ' rounds ✗</span>');
+
+        if (!allPass) {
+          html += '<br><br><details><summary style="cursor:pointer;color:var(--muted)">Show all tokens</summary>';
+          html += '<pre style="font-size:0.75rem;margin-top:0.5rem;color:var(--text);white-space:pre-wrap">';
+          for (var j = 0; j < ROUNDS; j++) {
+            html += 'Round ' + (j+1) + ':\n  SHA-256: ' + tokens[j] + '\n  FNV-1a: ' + syncTokens[j] + '\n';
+          }
+          html += '</pre></details>';
+        }
+
+        html += '</div>';
+        output.innerHTML = html;
+
+        console.group("%c[BrowserFingerprint] Consistency Test", "color:#7c6ef0;font-weight:bold");
+        console.log("Result:", allPass ? "PASS" : "FAIL");
+        console.log("SHA-256 tokens:", tokens);
+        console.log("FNV-1a tokens:", syncTokens);
+        console.groupEnd();
+
+      } catch (err) {
+        output.innerHTML = '<div class="consistency-result fail"><div class="status err">❌ Error: ' + escapeHtml(err.message) + '</div></div>';
+        console.error("[BrowserFingerprint] Consistency test error:", err);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Run Consistency Test";
+      }
+    }
+
+    function clearAll() {
+      if (typeof BrowserFingerprint !== "undefined" && BrowserFingerprint.clearCache) {
+        BrowserFingerprint.clearCache();
+      }
+      document.getElementById("card-tokens").style.display = "none";
+      document.getElementById("card-signals").style.display = "none";
+      document.getElementById("card-consistency").style.display = "none";
+      console.log("[BrowserFingerprint] Cache cleared, UI reset.");
+    }
+
+    function copyToken(el) {
+      var token = el.getAttribute("data-token");
+      if (!token) return;
+      navigator.clipboard.writeText(token).then(function() {
+        el.classList.add("copied");
+        var hint = el.querySelector(".copy-hint");
+        if (hint) hint.textContent = "copied!";
+        setTimeout(function() {
+          el.classList.remove("copied");
+          if (hint) hint.textContent = "click to copy";
+        }, 1500);
+      });
+    }
+
+    // Auto-run on load
+    window.addEventListener("DOMContentLoaded", function() {
+      if (typeof BrowserFingerprint === "undefined") {
+        document.querySelector(".container").innerHTML =
+          '<div class="card" style="text-align:center;color:var(--red);">'
+          + '<h2>⚠️ BrowserFingerprint not loaded</h2>'
+          + '<p style="color:var(--muted);margin-top:0.5rem;">Make sure <code>index.js</code> is in the same directory as this file.</p>'
+          + '</div>';
+        return;
+      }
+      runFingerprint();
+    });
+  </script>
+</body>
+</html>

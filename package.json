@@ -1,0 +1,39 @@
+{
+  "name": "browser-fingerprint-js",
+  "version": "2.1.0",
+  "description": "Lightweight, zero-dependency browser fingerprinting library that generates deterministic, collision-resistant tokens. Same browser + device = same token.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "files": [
+    "index.js",
+    "index.d.ts"
+  ],
+  "scripts": {
+    "test": "echo \"Open test.html in a browser to run manual tests\""
+  },
+  "keywords": [
+    "fingerprint",
+    "browser-fingerprint",
+    "device-fingerprint",
+    "canvas-fingerprint",
+    "webgl-fingerprint",
+    "token",
+    "hash",
+    "sha256",
+    "bot-detection",
+    "fraud-detection",
+    "browser"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "browserslist": [
+    "last 2 Chrome versions",
+    "last 2 Firefox versions",
+    "last 2 Safari versions",
+    "last 2 Edge versions"
+  ]
+}
